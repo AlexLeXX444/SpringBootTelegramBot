@@ -41,7 +41,7 @@ public class TeleBot extends TelegramLongPollingBot{
 
     public TeleBot(BotConfig config) {
         this.config = config;
-        List<BotCommand> listOfCommands = new ArrayList();
+        List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "Get welcome message."));
         listOfCommands.add(new BotCommand("/register", "Register as new user."));
         listOfCommands.add(new BotCommand("/mydata", "Info about user."));
@@ -187,7 +187,7 @@ public class TeleBot extends TelegramLongPollingBot{
         messageText.setReplyMarkup(keyboardMarkup);
     }
 
-    private void executeMessageCallBack(String textAnswer, long chatId, long messageId) {
+    public void executeMessageCallBack(String textAnswer, long chatId, long messageId) {
         EditMessageText message = new EditMessageText();
                 message.setChatId(String.valueOf(chatId));
                 message.setText(textAnswer);
@@ -201,7 +201,7 @@ public class TeleBot extends TelegramLongPollingBot{
                 }
     }
 
-    private void executeMessageSend(SendMessage message) {
+    public void executeMessageSend(SendMessage message) {
         try {
             execute(message);
             log.info("Replied to user " + message.getChatId() + ":::" + message.getText());
