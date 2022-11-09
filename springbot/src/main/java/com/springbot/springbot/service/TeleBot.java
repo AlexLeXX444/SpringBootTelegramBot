@@ -36,6 +36,8 @@ public class TeleBot extends TelegramLongPollingBot{
     final BotConfig config;
 
     static final String HELP_TEXT = "There is help message. This bot can be used to send commands, save data about users, etc.";
+    static final String YES_BUTTON = "YES_BUTTON";
+    static final String NO_BUTTON = "NO_BUTTON";
 
     public TeleBot(BotConfig config) {
         this.config = config;
@@ -67,54 +69,34 @@ public class TeleBot extends TelegramLongPollingBot{
                 for (User user : users) {
                     sendMessage(user.getChatId(), textToSend, user.getUserName());
                 }
-            }
-
-            switch (messageText) {
-                case "/start":
-                    registerUser(arg0.getMessage());
-                    commandStartRecieve(chatId, arg0.getMessage().getChat().getFirstName());
-                    break;
-                case "/help":
-                    sendMessage(chatId, HELP_TEXT, arg0.getMessage().getChat().getFirstName()); 
-                    break;
-                case "/register":
-                    commandRegisterNewUser(arg0.getMessage().getChatId());
-                    break;    
-                default:
-                    sendMessage(chatId, "Sorry, this don`t work yet.", arg0.getMessage().getChat().getFirstName());   
+            } else {
+                switch (messageText) {
+                    case "/start":
+                        registerUser(arg0.getMessage());
+                        commandStartRecieve(chatId, arg0.getMessage().getChat().getFirstName());
+                        break;
+                    case "/help":
+                        sendMessage(chatId, HELP_TEXT, arg0.getMessage().getChat().getFirstName()); 
+                        break;
+                    case "/register":
+                        commandRegisterNewUser(arg0.getMessage().getChatId());
+                        break;    
+                    default:
+                        sendMessage(chatId, "Sorry, this don`t work yet.", arg0.getMessage().getChat().getFirstName());
+                    }   
             }
         } else if (arg0.hasCallbackQuery()) {
             String callbackData = arg0.getCallbackQuery().getData();
             long messageId = arg0.getCallbackQuery().getMessage().getMessageId();
             long chatId = arg0.getCallbackQuery().getMessage().getChatId();
 
-            if (callbackData.equals("YES_BUTTON")) {
+            if (callbackData.equals(YES_BUTTON)) {
                 String textAnswer = "You pressed YES";
-                EditMessageText message = new EditMessageText();
-                message.setChatId(String.valueOf(chatId));
-                message.setText(textAnswer);
-                message.setMessageId((int) messageId);
-
-                try {
-                    execute(message);
-                }
-                catch (TelegramApiException e) {
-                    log.error("Error occured: " + e.getMessage());
-                }
+                executeMessageCallBack(textAnswer, chatId, messageId);
             } 
-            else if (callbackData.equals("NO_BUTTON")) {
+            else if (callbackData.equals(NO_BUTTON)) {
                 String textAnswer = "You pressed NO";
-                EditMessageText message = new EditMessageText();
-                message.setChatId(String.valueOf(chatId));
-                message.setText(textAnswer);
-                message.setMessageId((int) messageId);
-
-                try {
-                    execute(message);
-                }
-                catch (TelegramApiException e) {
-                    log.error("Error occured: " + e.getMessage());
-                }
+                executeMessageCallBack(textAnswer, chatId, messageId);
             }
         }
     }
@@ -130,8 +112,11 @@ public class TeleBot extends TelegramLongPollingBot{
     }
     
     private void commandStartRecieve(long chatId, String name) {
-        String answer = EmojiParser.parseToUnicode("Hi, " + name + ", nice to meet you." + "  :blush:");
-        sendMessage(chatId, answer, name);
+        SendMessage answer = new SendMessage();
+        answer.setChatId(chatId);
+        answer.setText(EmojiParser.parseToUnicode("Hi, " + name + ", nice to meet you." + "  :blush:"));
+        keyboardMainWindow(answer);
+        executeMessageSend(answer);
     }
 
     private void commandRegisterNewUser(long chatId) {
@@ -144,10 +129,10 @@ public class TeleBot extends TelegramLongPollingBot{
         List<InlineKeyboardButton> row1 = new ArrayList<>();
         var yesButtonInLine = new InlineKeyboardButton();
         yesButtonInLine.setText("Yes");
-        yesButtonInLine.setCallbackData("YES_BUTTON");
+        yesButtonInLine.setCallbackData(YES_BUTTON);
         var noButtonInLine = new InlineKeyboardButton();
         noButtonInLine.setText("No");
-        noButtonInLine.setCallbackData("NO_BUTTON");
+        noButtonInLine.setCallbackData(NO_BUTTON);
         
         row1.add(yesButtonInLine);        
         row1.add(noButtonInLine);
@@ -156,28 +141,15 @@ public class TeleBot extends TelegramLongPollingBot{
         keyboardMarkup.setKeyboard(rowsInLine);
         message.setReplyMarkup(keyboardMarkup);
 
-        try {
-            execute(message);
-        }
-        catch (TelegramApiException e) {
-            log.error("Error occured: " + e.getMessage());
-        }
+        executeMessageSend(message);
     }
 
     private void sendMessage(long chatId, String textToSend, String name) {
         SendMessage messageText = new SendMessage();
         messageText.setChatId(String.valueOf(chatId));
-        messageText.setText(textToSend);
+        messageText.setText(textToSend);      
 
-        keyboardMainWindow(messageText);
-
-        try {
-            execute(messageText);
-            log.info("Replied to user " + name + ":::" + textToSend);
-        }
-        catch (TelegramApiException e) {
-            log.error("Error occured: " + e.getMessage());
-        }
+        executeMessageSend(messageText);
     }
 
     private void registerUser(Message message) {
@@ -213,5 +185,29 @@ public class TeleBot extends TelegramLongPollingBot{
 
         keyboardMarkup.setKeyboard(keyboardRows);
         messageText.setReplyMarkup(keyboardMarkup);
+    }
+
+    private void executeMessageCallBack(String textAnswer, long chatId, long messageId) {
+        EditMessageText message = new EditMessageText();
+                message.setChatId(String.valueOf(chatId));
+                message.setText(textAnswer);
+                message.setMessageId((int) messageId);
+
+                try {
+                    execute(message);
+                }
+                catch (TelegramApiException e) {
+                    log.error("Error occured: " + e.getMessage());
+                }
+    }
+
+    private void executeMessageSend(SendMessage message) {
+        try {
+            execute(message);
+            log.info("Replied to user " + message.getChatId() + ":::" + message.getText());
+        }
+        catch (TelegramApiException e) {
+            log.error("Error occured: " + e.getMessage());
+        }
     }
 }
